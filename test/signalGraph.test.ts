@@ -1,7 +1,7 @@
-import { SignalGraph, buildSignalGraph } from '../src/signalGraph'
+import { buildSignalGraph } from '../src/signalGraph'
 import { Observable, combineLatest, Subject, of } from 'rxjs'
 import { SignalGraphDefinition } from '../src/signalGraphDefinition'
-import { map, tap } from 'rxjs/operators'
+import { map } from 'rxjs/operators'
 
 type SignalsType = {
   x: string
@@ -82,6 +82,36 @@ describe('SignalGraph', () => {
       expect(() => buildSignalGraph(signalGraphDefinition)).toThrowError(
         'Signal Dependency Not Found'
       )
+    })
+  })
+
+  describe('given a graph with undefines in signal derivations', () => {
+    const signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, never, 'y'> = {
+      primaryKeys: [] as never[],
+      depedencies: {
+        dep: of('sauce')
+      },
+      derivedKeys: {
+        y: {
+          derivationFn: (_, dep) =>
+            dep ? dep.pipe(map(depVal => 'Hello ' + depVal)) : new Observable<string>(),
+          dependencyList: [undefined, 'dep']
+        }
+      }
+    }
+
+    const signalGraph = buildSignalGraph(signalGraphDefinition)
+
+    it('has signals', () => {
+      expect(signalGraph.get('y')).toBeInstanceOf(Observable)
+    })
+    it('has derived signals that behave correctly', async () => {
+      await new Promise(resolve => {
+        signalGraph.get('y').subscribe(result => {
+          expect(result).toEqual('Hello sauce')
+          resolve(true)
+        })
+      })
     })
   })
 
