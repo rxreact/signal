@@ -11,11 +11,10 @@ import { assoc } from './util'
 export type SignalGraphDefinitionTransform<
   SignalsType,
   Dependencies,
-  EP extends keyof SignalsType,
-  ED extends keyof SignalsType
+  EP extends [keyof SignalsType, keyof SignalsType]
 > = <P extends keyof SignalsType, D extends keyof SignalsType>(
   signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, P, D>
-) => SignalGraphDefinition<SignalsType, Dependencies, P | EP, D | ED>
+) => SignalGraphDefinition<SignalsType, Dependencies, P | EP[0], D | EP[1]>
 
 export const addDependency = <
   SignalsType,
@@ -24,7 +23,7 @@ export const addDependency = <
 >(
   key: K,
   dependency: Signals<SignalsType, Dependencies>[K]
-): SignalGraphDefinitionTransform<SignalsType, Dependencies, never, never> => <
+): SignalGraphDefinitionTransform<SignalsType, Dependencies, [never, never]> => <
   P extends keyof SignalsType,
   D extends keyof SignalsType
 >(
@@ -36,7 +35,7 @@ export const addDependency = <
 
 export const addPrimary = <SignalsType, Dependencies, K extends keyof SignalsType>(
   key: K
-): SignalGraphDefinitionTransform<SignalsType, Dependencies, K, never> => <
+): SignalGraphDefinitionTransform<SignalsType, Dependencies, [K, never]> => <
   P extends keyof SignalsType,
   D extends keyof SignalsType
 >(
@@ -60,7 +59,7 @@ export const addDerived = <
     DL
   >,
   ...args: DL
-): SignalGraphDefinitionTransform<SignalsType, Dependencies, never, K> => <
+): SignalGraphDefinitionTransform<SignalsType, Dependencies, [never, K]> => <
   P extends keyof SignalsType,
   D extends keyof SignalsType
 >(
