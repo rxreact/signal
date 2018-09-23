@@ -1,13 +1,6 @@
 import { SignalGraphDefinition, DerivableSignals, ObservableMap } from './signalGraphDefinition'
-import {
-  SignalGraphDefinitionTransform,
-  addPrimary,
-  addDependency,
-  addDerived
-} from './signalGraphDefinitionTransform'
+import { SignalGraphDefinitionTransform } from './signalGraphDefinitionTransform'
 import { buildSignalGraph, BuildSignalGraphFn } from './SignalGraph'
-import { Observable, of } from 'rxjs'
-import { map } from 'rxjs/operators'
 
 type SignalTransforms<S, Dep, T extends any[]> = {
   [K in keyof T]: SignalGraphDefinitionTransform<
@@ -54,14 +47,20 @@ export default class SignalGraphBuilder<
       Dep,
       P | ToupleUnion<FirstElements<S, T>>,
       D | ToupleUnion<SecondElements<S, T>>
-    > = transforms.reduce(
-      (definition, transform) => (transform ? transform(definition) : definition),
-      this.signalGraphDefinition as SignalGraphDefinition<S, Dep, any, any>
-    )
+    > = transforms.reduce((definition, transform) => transform(definition), this
+      .signalGraphDefinition as SignalGraphDefinition<S, Dep, any, any>)
     return new SignalGraphBuilder(newDefinition, this.initialValues, this.buildSignalGraphFn)
   }
 
+  public initializeWith(initialValues: Partial<S>) {
+    return new SignalGraphBuilder(
+      this.signalGraphDefinition,
+      initialValues,
+      this.buildSignalGraphFn
+    )
+  }
+
   public build() {
-    return this.buildSignalGraphFn(this.signalGraphDefinition)
+    return this.buildSignalGraphFn(this.signalGraphDefinition, this.initialValues)
   }
 }

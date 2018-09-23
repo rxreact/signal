@@ -109,7 +109,8 @@ const makeDerivedSignals = <S, Dep, P extends keyof S, D extends keyof S>(
 }
 
 export type BuildSignalGraphFn = <S, Dep, P extends keyof S, D extends keyof S>(
-  signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D>
+  signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D>,
+  initialValues: Partial<S>
 ) => SignalGraph<Pick<S, P>, Pick<S, D>>
 
 export const buildSignalGraph: BuildSignalGraphFn = <
@@ -123,7 +124,8 @@ export const buildSignalGraph: BuildSignalGraphFn = <
     Dependencies,
     PrimarySignalsKeys,
     DerivedSignalsKeys
-  >
+  >,
+  initialValues: Partial<SignalsType> = {}
 ): SignalGraph<Pick<SignalsType, PrimarySignalsKeys>, Pick<SignalsType, DerivedSignalsKeys>> => {
   const inputs = makeInputs(signalGraphDefinition)
   const primarySignals = makePrimarySignals(inputs)
