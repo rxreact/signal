@@ -1,7 +1,7 @@
 import { buildSignalGraph } from '../src/signalGraph'
 import { Observable, combineLatest, Subject, of } from 'rxjs'
 import { SignalGraphDefinition } from '../src/signalGraphDefinition'
-import { map } from 'rxjs/operators'
+import { map, take } from 'rxjs/operators'
 
 type SignalsType = {
   x: string
@@ -43,21 +43,53 @@ describe('SignalGraph', () => {
       }
     }
 
-    const signalGraph = buildSignalGraph(signalGraphDefinition)
     it('has primary signals', () => {
-      expect(signalGraph.get('x')).toBeInstanceOf(Subject)
+      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      expect(signalGraph.output('x')).toBeInstanceOf(Observable)
     })
     it('has derived signals', () => {
-      expect(signalGraph.get('y')).toBeInstanceOf(Observable)
-      expect(signalGraph.get('z')).toBeInstanceOf(Observable)
+      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      expect(signalGraph.output('y')).toBeInstanceOf(Observable)
+      expect(signalGraph.output('z')).toBeInstanceOf(Observable)
     })
     it('has derived signals that behave correctly', async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition)
       await new Promise(resolve => {
-        signalGraph.get('z').subscribe(result => {
+        signalGraph.output('z').subscribe(result => {
           expect(result).toEqual('Hello apple sauce')
           resolve(true)
         })
-        signalGraph.get('x').next('apple')
+        signalGraph.input('x').next('apple')
+      })
+    })
+    it("inputs hold their last input until they're subscribed to", async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      await new Promise(resolve => {
+        signalGraph.input('x').next('apple')
+        signalGraph.input('x').next('cheese')
+        signalGraph.output('z').subscribe(result => {
+          expect(result).toEqual('Hello cheese sauce')
+          resolve(true)
+        })
+      })
+    })
+    it('when subscriptions go to zero, only the last input value is passed when subscriptions happen again', async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      await new Promise(resolve => {
+        signalGraph.input('x').next('apple')
+        signalGraph.input('x').next('cheese')
+        signalGraph
+          .output('z')
+          .pipe(take(1))
+          .subscribe(_ => null, _ => null, () => resolve(true))
+      })
+      await new Promise(resolve => {
+        signalGraph.input('x').next('oranges')
+        signalGraph.input('x').next('pepper')
+        signalGraph.output('z').subscribe(result => {
+          expect(result).toEqual('Hello pepper sauce')
+          resolve(true)
+        })
       })
     })
   })
@@ -103,11 +135,11 @@ describe('SignalGraph', () => {
     const signalGraph = buildSignalGraph(signalGraphDefinition)
 
     it('has signals', () => {
-      expect(signalGraph.get('y')).toBeInstanceOf(Observable)
+      expect(signalGraph.output('y')).toBeInstanceOf(Observable)
     })
     it('has derived signals that behave correctly', async () => {
       await new Promise(resolve => {
-        signalGraph.get('y').subscribe(result => {
+        signalGraph.output('y').subscribe(result => {
           expect(result).toEqual('Hello sauce')
           resolve(true)
         })
@@ -133,11 +165,11 @@ describe('SignalGraph', () => {
     const signalGraph = buildSignalGraph(signalGraphDefinition)
 
     it('has signals', () => {
-      expect(signalGraph.get('y')).toBeInstanceOf(Observable)
+      expect(signalGraph.output('y')).toBeInstanceOf(Observable)
     })
     it('has derived signals that behave correctly', async () => {
       await new Promise(resolve => {
-        signalGraph.get('y').subscribe(result => {
+        signalGraph.output('y').subscribe(result => {
           expect(result).toEqual('Hello sauce')
           resolve(true)
         })

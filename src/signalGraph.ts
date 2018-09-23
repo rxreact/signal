@@ -1,5 +1,5 @@
 import toposort from './toposort'
-import { Subject } from 'rxjs'
+import { Observable, ReplaySubject } from 'rxjs'
 import {
   SignalGraphDefinition,
   Signals,
@@ -9,30 +9,19 @@ import {
   ObservableMap
 } from './signalGraphDefinition'
 import { transformValues } from './util'
+import { shareReplay } from 'rxjs/operators'
 
 export interface SignalGraph<PrimarySignalsType, DerivedSignalsType> {
-  get<K1 extends keyof PrimarySignalsType>(key: K1): SubjectMap<PrimarySignalsType>[K1]
-  get<K1 extends keyof DerivedSignalsType>(key: K1): ObservableMap<DerivedSignalsType>[K1]
-  get<K1 extends keyof PrimarySignalsType | keyof DerivedSignalsType>(
-    key: K1
-  ):
-    | SubjectMap<PrimarySignalsType & DerivedSignalsType>[K1]
-    | ObservableMap<PrimarySignalsType & DerivedSignalsType>[K1]
+  input<K1 extends keyof PrimarySignalsType>(key: K1): SubjectMap<PrimarySignalsType>[K1]
+
+  output<K1 extends keyof PrimarySignalsType>(key: K1): ObservableMap<PrimarySignalsType>[K1]
+  output<K2 extends keyof DerivedSignalsType>(key: K2): ObservableMap<DerivedSignalsType>[K2]
+  output<K1 extends keyof PrimarySignalsType, K2 extends keyof DerivedSignalsType>(
+    key: K1 | K2
+  ): ObservableMap<PrimarySignalsType>[K1] | ObservableMap<DerivedSignalsType>[K2]
 }
 
-type ArrayValues<S> = (S[keyof S] | undefined)[]
-type SignalDependencies<SignalsType, Dependencies> = ArrayValues<Signals<SignalsType, Dependencies>>
-
 type SignalDependencyMap<S> = { [K in keyof S]: (keyof S)[] }
-
-type FinalSignals<
-  SignalsType,
-  Dependencies,
-  PrimarySignalsKeys extends keyof SignalsType,
-  DerivedSignalsKeys extends keyof SignalsType
-> = SubjectMap<Pick<SignalsType, PrimarySignalsKeys>> &
-  ObservableMap<Pick<SignalsType, DerivedSignalsKeys>> &
-  Dependencies
 
 const makeSignalDependencyMap = <S, D extends keyof S>(derivableSignals: DerivableSignals<S, D>) =>
   transformValues<DerivableSignals<S, D>, SignalDependencyMap<S>>(
@@ -41,7 +30,7 @@ const makeSignalDependencyMap = <S, D extends keyof S>(derivableSignals: Derivab
   )
 
 const isPrimaryKey = <S, P extends keyof S>(
-  primarySignals: SubjectMap<Pick<S, P>>,
+  primarySignals: ObservableMap<Pick<S, P>>,
   key: any
 ): key is P => !!(key && (primarySignals as any)[key])
 
@@ -53,14 +42,26 @@ const isDerivedKey = <S, D extends keyof S>(
   key: any
 ): key is D => !!(key && (derivedKeys as any)[key])
 
-const makePrimarySignals = <S, Dep, P extends keyof S, D extends keyof S>(
+const addDefaults = <T>(source: Observable<T>) => source.pipe(shareReplay(1))
+const makeInputs = <S, Dep, P extends keyof S, D extends keyof S>(
   signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D>
-) => transformValues<SubjectMap<Pick<S, P>>>(_ => new Subject(), signalGraphDefinition.primaryKeys)
+) =>
+  transformValues<SubjectMap<Pick<S, P>>>(
+    _ => new ReplaySubject(1),
+    signalGraphDefinition.primaryKeys
+  )
 
-const makeSignalDependencies = <S, Dep, P extends keyof S, D extends keyof S>(
-  primarySignals: SubjectMap<Pick<S, P>>,
+const makePrimarySignals = <S, P extends keyof S>(inputs: SubjectMap<Pick<S, P>>) =>
+  transformValues<SubjectMap<Pick<S, P>>, ObservableMap<Pick<S, P>>>(
+    input => addDefaults(input),
+    inputs
+  )
+
+const makeSignalDependenciesFn = <S, Dep, P extends keyof S, D extends keyof S>(
+  primarySignals: ObservableMap<Pick<S, P>>,
   dependencies: Dep,
-  derivedKeys: DerivableSignals<Signals<S, Dep>, D>,
+  derivedKeys: DerivableSignals<Signals<S, Dep>, D>
+) => (
   derivedSignals: Partial<ObservableMap<Pick<S, D>>>,
   dependencyList: DependencyList<keyof Signals<S, Dep>>
 ) =>
@@ -82,32 +83,36 @@ const makeSignalDependencies = <S, Dep, P extends keyof S, D extends keyof S>(
     }
   )
 
+type SignalDependenciesFn<S, Dep, D extends keyof S> = (
+  derivedSignals: Partial<ObservableMap<Pick<S, D>>>,
+  dependencyList: DependencyList<keyof Signals<S, Dep>>
+) => (Signals<S, Dep>[keyof Signals<S, Dep>] | undefined)[]
+
 const makeDerivedSignals = <S, Dep, P extends keyof S, D extends keyof S>(
-  primarySignals: SubjectMap<Pick<S, P>>,
-  dependencies: Dep,
-  derivedKeys: DerivableSignals<Signals<S, Dep>, D>
+  derivedKeys: DerivableSignals<Signals<S, Dep>, D>,
+  makeSignalDependencies: SignalDependenciesFn<S, Dep, D>
 ) => {
   const signalDependencyMap = makeSignalDependencyMap(derivedKeys)
   const sortedSignals = toposort(signalDependencyMap)
 
-  return sortedSignals.reduce<Partial<ObservableMap<Pick<S, D>>>>((acc, signalName) => {
-    if (!isDerivedKey(derivedKeys, signalName)) {
-      return acc
-    }
-    const signal = derivedKeys[signalName]
-    const signalDependencies = makeSignalDependencies(
-      primarySignals,
-      dependencies,
-      derivedKeys,
-      acc,
-      signal.dependencyList
+  return sortedSignals
+    .filter((signalName): signalName is D => isDerivedKey(derivedKeys, signalName))
+    .reduce(
+      (acc, signalName) => {
+        const signal = derivedKeys[signalName]
+        const signalDependencies = makeSignalDependencies(acc, signal.dependencyList)
+        const derived = addDefaults(signal.derivationFn(...signalDependencies))
+        return Object.assign({}, acc, { [signalName]: derived })
+      },
+      {} as ObservableMap<Pick<S, D>>
     )
-    const derivedSignal = signal.derivationFn(...signalDependencies)
-    return Object.assign({}, acc, { [signalName]: derivedSignal })
-  }, {}) as ObservableMap<Pick<S, D>>
 }
 
-export const buildSignalGraph = <
+export type BuildSignalGraphFn = <S, Dep, P extends keyof S, D extends keyof S>(
+  signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D>
+) => SignalGraph<Pick<S, P>, Pick<S, D>>
+
+export const buildSignalGraph: BuildSignalGraphFn = <
   SignalsType,
   Dependencies,
   PrimarySignalsKeys extends keyof SignalsType,
@@ -120,21 +125,29 @@ export const buildSignalGraph = <
     DerivedSignalsKeys
   >
 ): SignalGraph<Pick<SignalsType, PrimarySignalsKeys>, Pick<SignalsType, DerivedSignalsKeys>> => {
-  const primarySignals = makePrimarySignals(signalGraphDefinition)
+  const inputs = makeInputs(signalGraphDefinition)
+  const primarySignals = makePrimarySignals(inputs)
   const dependencies = signalGraphDefinition.depedencies
-  const derivedSignals = makeDerivedSignals(
+  const makeSignalDependencies = makeSignalDependenciesFn(
     primarySignals,
     dependencies,
     signalGraphDefinition.derivedKeys
   )
-  function get<K1 extends PrimarySignalsKeys>(
+  const derivedSignals = makeDerivedSignals(
+    signalGraphDefinition.derivedKeys,
+    makeSignalDependencies
+  )
+  function output<K1 extends PrimarySignalsKeys>(
     key: K1
-  ): SubjectMap<Pick<SignalsType, PrimarySignalsKeys>>[K1]
-  function get<K2 extends DerivedSignalsKeys>(
+  ): ObservableMap<Pick<SignalsType, PrimarySignalsKeys>>[K1]
+  function output<K2 extends DerivedSignalsKeys>(
     key: K2
   ): ObservableMap<Pick<SignalsType, DerivedSignalsKeys>>[K2]
-  function get<K1 extends PrimarySignalsKeys, K2 extends DerivedSignalsKeys>(signal: K1 | K2) {
+  function output<K1 extends PrimarySignalsKeys, K2 extends DerivedSignalsKeys>(signal: K1 | K2) {
     return isPrimaryKey(primarySignals, signal) ? primarySignals[signal] : derivedSignals[signal]
   }
-  return { get }
+  return {
+    output,
+    input: <K1 extends PrimarySignalsKeys>(signal: K1) => inputs[signal]
+  }
 }
