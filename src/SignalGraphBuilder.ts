@@ -28,7 +28,7 @@ export default class SignalGraphBuilder<
     private signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D> = {
       depedencies: {},
       primaryKeys: [],
-      derivedKeys: {} as DerivableSignals<ObservableMap<S> & Dep, D>
+      derivableSignals: {} as DerivableSignals<ObservableMap<S> & Dep, D>
     },
     private initialValues: Partial<S> = {},
     private buildSignalGraphFn: BuildSignalGraphFn = buildSignalGraph

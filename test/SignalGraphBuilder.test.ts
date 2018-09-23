@@ -17,7 +17,7 @@ describe('SignalGraphBuilder', () => {
   const startingDefinition: SignalGraphDefinition<SignalsType, Dependencies> = {
     primaryKeys: [],
     depedencies: {},
-    derivedKeys: {}
+    derivableSignals: {}
   }
   const startingInitialValues = {}
   const buildSignalGraph = jest.fn().mockImplementation((...args) => args)
@@ -32,7 +32,7 @@ describe('SignalGraphBuilder', () => {
       depedencies: {
         dep
       },
-      derivedKeys: {
+      derivableSignals: {
         z: {
           derivationFn: zDerivation,
           dependencyList: ['y']

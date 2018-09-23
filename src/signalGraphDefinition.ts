@@ -48,5 +48,5 @@ export interface SignalGraphDefinition<
 > {
   depedencies: Partial<Dependencies>
   primaryKeys: P[]
-  derivedKeys: DerivableSignals<ObservableMap<SignalsType> & Dependencies, D>
+  derivableSignals: DerivableSignals<ObservableMap<SignalsType> & Dependencies, D>
 }

@@ -29,7 +29,7 @@ describe('SignalGraph', () => {
       depedencies: {
         dep: of('sauce')
       },
-      derivedKeys: {
+      derivableSignals: {
         z: {
           derivationFn: y => (y ? y.pipe(map(yVal => 'Hello ' + yVal)) : new Observable<string>()),
           dependencyList: ['y']
@@ -136,7 +136,7 @@ describe('SignalGraph', () => {
       depedencies: {
         dep: of('sauce')
       },
-      derivedKeys: {
+      derivableSignals: {
         y: {
           derivationFn: (x, dep) =>
             x && dep
@@ -160,7 +160,7 @@ describe('SignalGraph', () => {
       depedencies: {
         dep: of('sauce')
       },
-      derivedKeys: {
+      derivableSignals: {
         y: {
           derivationFn: (_, dep) =>
             dep ? dep.pipe(map(depVal => 'Hello ' + depVal)) : new Observable<string>(),
@@ -190,7 +190,7 @@ describe('SignalGraph', () => {
       depedencies: {
         dep: of('sauce')
       },
-      derivedKeys: {
+      derivableSignals: {
         y: {
           derivationFn: dep =>
             dep ? dep.pipe(map(depVal => 'Hello ' + depVal)) : new Observable<string>(),

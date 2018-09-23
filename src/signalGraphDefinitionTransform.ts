@@ -66,12 +66,15 @@ export const addDerived = <
   signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, P, D>
 ) => ({
   ...signalGraphDefinition,
-  derivedKeys: assoc<DerivableSignals<Signals<SignalsType, Dependencies>, D | K>, K>(
+  derivableSignals: assoc<DerivableSignals<Signals<SignalsType, Dependencies>, D | K>, K>(
     key,
     {
       derivationFn: derivationFn as InternalSignalDerivation<Signals<SignalsType, Dependencies>, K>,
       dependencyList: args
     },
-    signalGraphDefinition.derivedKeys as DerivableSignals<Signals<SignalsType, Dependencies>, K | D>
+    signalGraphDefinition.derivableSignals as DerivableSignals<
+      Signals<SignalsType, Dependencies>,
+      K | D
+    >
   )
 })
