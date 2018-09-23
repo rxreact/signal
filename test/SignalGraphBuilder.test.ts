@@ -3,6 +3,7 @@ import { Observable, of, combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 import SignalGraphBuilder from '../src/SignalGraphBuilder'
 import { addPrimary, addDependency, addDerived } from '../src/signalGraphDefinitionTransform'
+import { SignalGraph } from '../src/SignalGraph'
 describe('SignalGraphBuilder', () => {
   type SignalsType = {
     x: string
@@ -49,7 +50,11 @@ describe('SignalGraphBuilder', () => {
         startingInitialValues,
         buildSignalGraph
       )
-      const signalGraph: any = signalGraphBuilder
+      // this is to verify that seperating primary and derived signal types is working
+      const signalGraphTypeTest: SignalGraph<
+        Pick<SignalsType, 'x'>,
+        Pick<SignalsType, 'y' | 'z'>
+      > = signalGraphBuilder
         .define(
           addPrimary('x'),
           addDependency('dep', dep),
@@ -57,6 +62,7 @@ describe('SignalGraphBuilder', () => {
           addDerived('y', yDerivation, 'x', 'dep')
         )
         .build()
+      const signalGraph: any = signalGraphTypeTest
       expect(signalGraph[0]).toEqual(expectedSignalGraphDefinition)
     })
   })

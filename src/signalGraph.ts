@@ -110,23 +110,21 @@ const makeSignalDependenciesFn = <S, Dep, P extends keyof S, D extends keyof S>(
   derivedSignals: Partial<ObservableMap<Pick<S, D>>>,
   dependencyList: DependencyList<keyof Signals<S, Dep>>
 ) =>
-  dependencyList.map(
-    (dependencyName): Signals<S, Dep>[keyof Signals<S, Dep>] | undefined => {
-      if (isPrimaryKey(primarySignals, dependencyName)) {
-        return primarySignals[dependencyName]
-      }
-      if (isDependencyKey(dependencies, dependencyName)) {
-        return dependencies[dependencyName] as Signals<S, Dep>[keyof Signals<S, Dep>]
-      }
-      if (isDerivedKey(derivedKeys, dependencyName) && derivedSignals[dependencyName]) {
-        return derivedSignals[dependencyName]
-      }
-      if (dependencyName) {
-        throw Error('Signal Dependency Not Found')
-      }
-      return undefined
+  dependencyList.map(dependencyName => {
+    if (isPrimaryKey(primarySignals, dependencyName)) {
+      return primarySignals[dependencyName]
     }
-  )
+    if (isDependencyKey(dependencies, dependencyName)) {
+      return dependencies[dependencyName]
+    }
+    if (isDerivedKey(derivedKeys, dependencyName) && derivedSignals[dependencyName]) {
+      return derivedSignals[dependencyName]
+    }
+    if (dependencyName) {
+      throw Error('Signal Dependency Not Found')
+    }
+    return undefined
+  }) as Signals<S, Dep>[keyof Signals<S, Dep>][]
 
 type SignalDependenciesFn<S, Dep, D extends keyof S> = (
   derivedSignals: Partial<ObservableMap<Pick<S, D>>>,
