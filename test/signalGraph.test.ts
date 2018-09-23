@@ -1,7 +1,8 @@
 import { buildSignalGraph } from '../src/signalGraph'
 import { Observable, combineLatest, Subject, of } from 'rxjs'
 import { SignalGraphDefinition } from '../src/signalGraphDefinition'
-import { map, take } from 'rxjs/operators'
+import { map, take, toArray } from 'rxjs/operators'
+import { Z_FINISH } from 'zlib'
 
 type SignalsType = {
   x: string
@@ -44,16 +45,16 @@ describe('SignalGraph', () => {
     }
 
     it('has primary signals', () => {
-      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
       expect(signalGraph.output('x')).toBeInstanceOf(Observable)
     })
     it('has derived signals', () => {
-      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
       expect(signalGraph.output('y')).toBeInstanceOf(Observable)
       expect(signalGraph.output('z')).toBeInstanceOf(Observable)
     })
     it('has derived signals that behave correctly', async () => {
-      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
       await new Promise(resolve => {
         signalGraph.output('z').subscribe(result => {
           expect(result).toEqual('Hello apple sauce')
@@ -63,7 +64,7 @@ describe('SignalGraph', () => {
       })
     })
     it("inputs hold their last input until they're subscribed to", async () => {
-      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
       await new Promise(resolve => {
         signalGraph.input('x').next('apple')
         signalGraph.input('x').next('cheese')
@@ -74,7 +75,7 @@ describe('SignalGraph', () => {
       })
     })
     it('when subscriptions go to zero, only the last input value is passed when subscriptions happen again', async () => {
-      const signalGraph = buildSignalGraph(signalGraphDefinition)
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
       await new Promise(resolve => {
         signalGraph.input('x').next('apple')
         signalGraph.input('x').next('cheese')
@@ -90,6 +91,42 @@ describe('SignalGraph', () => {
           expect(result).toEqual('Hello pepper sauce')
           resolve(true)
         })
+      })
+    })
+    it('can initialize observables with initial values for primary signals', async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {
+        x: 'orange'
+      })
+      await new Promise(resolve => {
+        signalGraph
+          .output('z')
+          .pipe(
+            take(2),
+            toArray()
+          )
+          .subscribe(result => {
+            expect(result).toEqual(['Hello orange sauce', 'Hello apple sauce'])
+            resolve(true)
+          })
+        signalGraph.input('x').next('apple')
+      })
+    })
+    it('can initialize observables with initial values for derived signals', async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {
+        y: 'cheesy tots'
+      })
+      await new Promise(resolve => {
+        signalGraph
+          .output('z')
+          .pipe(
+            take(2),
+            toArray()
+          )
+          .subscribe(result => {
+            expect(result).toEqual(['Hello cheesy tots', 'Hello apple sauce'])
+            resolve(true)
+          })
+        signalGraph.input('x').next('apple')
       })
     })
   })
@@ -111,7 +148,7 @@ describe('SignalGraph', () => {
     }
 
     it('throws an exception when built', () => {
-      expect(() => buildSignalGraph(signalGraphDefinition)).toThrowError(
+      expect(() => buildSignalGraph(signalGraphDefinition, {})).toThrowError(
         'Signal Dependency Not Found'
       )
     })
@@ -132,7 +169,7 @@ describe('SignalGraph', () => {
       }
     }
 
-    const signalGraph = buildSignalGraph(signalGraphDefinition)
+    const signalGraph = buildSignalGraph(signalGraphDefinition, {})
 
     it('has signals', () => {
       expect(signalGraph.output('y')).toBeInstanceOf(Observable)
@@ -162,7 +199,7 @@ describe('SignalGraph', () => {
       }
     }
 
-    const signalGraph = buildSignalGraph(signalGraphDefinition)
+    const signalGraph = buildSignalGraph(signalGraphDefinition, {})
 
     it('has signals', () => {
       expect(signalGraph.output('y')).toBeInstanceOf(Observable)
