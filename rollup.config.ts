@@ -17,7 +17,7 @@ export default {
   ],
   sourcemap: true,
   // Indicate here external modules you don't wanna include in your bundle (i.e.: 'lodash')
-  external: ["rxjs", "react", "@rxreact/core"],
+  external: ["rxjs"],
   watch: {
     include: "src/**"
   },

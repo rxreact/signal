@@ -1,11 +1,11 @@
 {
-  "name": "@rxreact/signal-graph",
+  "name": "@rxreact/signal",
   "version": "0.0.0",
   "description": "",
   "keywords": [],
-  "main": "dist/signal-graph.umd.js",
-  "module": "dist/signal-graph.es5.js",
-  "typings": "dist/types/signal-graph.d.ts",
+  "main": "dist/signal.umd.js",
+  "module": "dist/signal.es5.js",
+  "typings": "dist/types/signal.d.ts",
   "files": [
     "dist"
   ],
@@ -107,7 +107,6 @@
     "validate-commit-msg": "^2.12.2"
   },
   "peerDependencies": {
-    "react": "^16.3.1",
     "rxjs": "^5.5.9"
   }
 }
