@@ -1,6 +1,6 @@
 import { SignalGraphDefinition, DerivableSignals, ObservableMap } from './signalGraphDefinition'
 import { SignalGraphDefinitionTransform } from './signalGraphDefinitionTransform'
-import { buildSignalGraph, BuildSignalGraphFn } from './SignalGraph'
+import { buildSignalGraph, BuildSignalGraphFn } from './signalGraph'
 
 type SignalTransforms<S, Dep, T extends any[]> = {
   [K in keyof T]: SignalGraphDefinitionTransform<
