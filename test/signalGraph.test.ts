@@ -129,6 +129,32 @@ describe('SignalGraph', () => {
         signalGraph.input('x').next('apple')
       })
     })
+    it('can be connected to other graphs', async () => {
+      const signalGraph = buildSignalGraph(signalGraphDefinition, {})
+      const otherDefinition: SignalGraphDefinition<{ o: string; p: string }, {}, 'o', 'p'> = {
+        primaryKeys: ['o'],
+        depedencies: {},
+        derivableSignals: {
+          p: {
+            derivationFn: o$ => (o$ ? o$.pipe(map(o => 'hot ' + o)) : new Observable<string>()),
+            dependencyList: ['o']
+          }
+        }
+      }
+      const otherGraph = buildSignalGraph(otherDefinition, {})
+      signalGraph.connect(
+        'x',
+        otherGraph,
+        'p'
+      )
+      await new Promise(resolve => {
+        signalGraph.output('z').subscribe(result => {
+          expect(result).toEqual('Hello hot wonton sauce')
+          resolve(true)
+        })
+        otherGraph.input('o').next('wonton')
+      })
+    })
   })
   describe('given a incorrectly defined graph', () => {
     const signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, never, 'y'> = {

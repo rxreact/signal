@@ -1,5 +1,5 @@
 import toposort from './toposort'
-import { Observable, ReplaySubject } from 'rxjs'
+import { Observable, ReplaySubject, Subscription, Observer } from 'rxjs'
 import {
   SignalGraphDefinition,
   Signals,
@@ -11,7 +11,14 @@ import {
 import { transformValues, assoc } from './util'
 import { shareReplay, startWith } from 'rxjs/operators'
 
+type MatchingKeys<V, T> = { [P in keyof T]: T[P] extends V ? P : never }[keyof T]
+
 export interface SignalGraph<PrimarySignalsType, DerivedSignalsType> {
+  connect<K1 extends keyof PrimarySignalsType, OP, OD>(
+    key: K1,
+    graph: SignalGraph<OP, OD>,
+    otherKey: MatchingKeys<PrimarySignalsType[K1], OP> | MatchingKeys<PrimarySignalsType[K1], OD>
+  ): Subscription
   input<K1 extends keyof PrimarySignalsType>(key: K1): SubjectMap<PrimarySignalsType>[K1]
 
   output<K1 extends keyof PrimarySignalsType>(key: K1): ObservableMap<PrimarySignalsType>[K1]
@@ -160,6 +167,39 @@ export type BuildSignalGraphFn = <S, Dep, P extends keyof S, D extends keyof S>(
   initialValues: Partial<S>
 ) => SignalGraph<Pick<S, P>, Pick<S, D>>
 
+const signalGraph = <
+  SignalsType,
+  PrimarySignalsKeys extends keyof SignalsType,
+  DerivedSignalsKeys extends keyof SignalsType
+>(
+  inputs: SubjectMap<Pick<SignalsType, PrimarySignalsKeys>>,
+  primarySignals: ObservableMap<Pick<SignalsType, PrimarySignalsKeys>>,
+  derivedSignals: ObservableMap<Pick<SignalsType, DerivedSignalsKeys>>
+) => {
+  function output<K1 extends PrimarySignalsKeys>(
+    key: K1
+  ): ObservableMap<Pick<SignalsType, PrimarySignalsKeys>>[K1]
+  function output<K2 extends DerivedSignalsKeys>(
+    key: K2
+  ): ObservableMap<Pick<SignalsType, DerivedSignalsKeys>>[K2]
+  function output<K1 extends PrimarySignalsKeys, K2 extends DerivedSignalsKeys>(signal: K1 | K2) {
+    return isPrimaryKey(primarySignals, signal) ? primarySignals[signal] : derivedSignals[signal]
+  }
+  return {
+    output,
+    connect: <K1 extends PrimarySignalsKeys, OP, OD>(
+      key: K1,
+      graph: SignalGraph<OP, OD>,
+      otherKey:
+        | MatchingKeys<Pick<SignalsType, PrimarySignalsKeys>[K1], OP>
+        | MatchingKeys<Pick<SignalsType, PrimarySignalsKeys>[K1], OD>
+    ): Subscription => {
+      const input: Observer<any> = inputs[key]
+      return graph.output(otherKey as any).subscribe(input)
+    },
+    input: <K1 extends PrimarySignalsKeys>(signal: K1) => inputs[signal]
+  }
+}
 export const buildSignalGraph: BuildSignalGraphFn = <
   SignalsType,
   Dependencies,
@@ -187,17 +227,5 @@ export const buildSignalGraph: BuildSignalGraphFn = <
     initialValues,
     makeSignalDependencies
   )
-  function output<K1 extends PrimarySignalsKeys>(
-    key: K1
-  ): ObservableMap<Pick<SignalsType, PrimarySignalsKeys>>[K1]
-  function output<K2 extends DerivedSignalsKeys>(
-    key: K2
-  ): ObservableMap<Pick<SignalsType, DerivedSignalsKeys>>[K2]
-  function output<K1 extends PrimarySignalsKeys, K2 extends DerivedSignalsKeys>(signal: K1 | K2) {
-    return isPrimaryKey(primarySignals, signal) ? primarySignals[signal] : derivedSignals[signal]
-  }
-  return {
-    output,
-    input: <K1 extends PrimarySignalsKeys>(signal: K1) => inputs[signal]
-  }
+  return signalGraph(inputs, primarySignals, derivedSignals)
 }
