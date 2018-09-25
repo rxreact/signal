@@ -104,10 +104,9 @@
     "tslint-config-standard": "^8.0.1",
     "typedoc": "hannahhoward/typedoc",
     "typescript": "^3.1.0-dev.20180922",
-    "validate-commit-msg": "^2.12.2",
-    "travis-deploy-once": "^5.0.8"
+    "validate-commit-msg": "^2.12.2"
   },
   "peerDependencies": {
-    "rxjs": "^5.5.9"
+    "rxjs": "^6.3.2"
   }
 }
