@@ -2,7 +2,6 @@ import { buildSignalGraph } from '../src/signalGraph'
 import { Observable, combineLatest, Subject, of } from 'rxjs'
 import { SignalGraphDefinition } from '../src/signalGraphDefinition'
 import { map, take, toArray } from 'rxjs/operators'
-import { Z_FINISH } from 'zlib'
 
 type SignalsType = {
   x: string

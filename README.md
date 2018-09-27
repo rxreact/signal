@@ -1,16 +1,22 @@
-# TypeScript library starter
-
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![Greenkeeper badge](https://badges.greenkeeper.io/alexjoverm/typescript-library-starter.svg)](https://greenkeeper.io/)
-[![Travis](https://img.shields.io/travis/alexjoverm/typescript-library-starter.svg)](https://travis-ci.org/alexjoverm/typescript-library-starter)
-[![Coveralls](https://img.shields.io/coveralls/alexjoverm/typescript-library-starter.svg)](https://coveralls.io/github/alexjoverm/typescript-library-starter)
-[![Dev Dependencies](https://david-dm.org/alexjoverm/typescript-library-starter/dev-status.svg)](https://david-dm.org/alexjoverm/typescript-library-starter?type=dev)
-[![Donate](https://img.shields.io/badge/donate-paypal-blue.svg)](https://paypal.me/AJoverMorales)
+[![Greenkeeper badge](https://badges.greenkeeper.io/rxreact/signal.svg)](https://greenkeeper.io/)
+[![Build Status](https://travis-ci.org/rxreact/signal.svg?branch=master)](https://travis-ci.org/rxreact/signal)
+[![Coverage Status](https://coveralls.io/repos/github/rxreact/signal/badge.svg?branch=master)](https://coveralls.io/github/rxreact/signal?branch=master)
 
-A starter project that makes creating a TypeScript library extremely easy.
+Development Sponsored By:  
+[![Carbon Five](./assets/C5_final_logo_horiz.png)](http://www.carbonfive.com)
 
-![](https://i.imgur.com/opUmHp0.png)
+# Signal
 
+This package attempts to answer to one of the most difficult questions when writing applications with RxJS: how to I build a data model for my application with observables?
+
+Existing data modeling solutions use RxJS to *mimic* other more well-known solutions for state management -- i.e. `how would I build Redux with RxJS`? This approach often sacrifices the power and potential of observables without providing much benefit. At the same time, working with raw observables without any framework brings up a million pitfalls -- hot vs cold, when to subscribe, how to manage dependencies and test, etc.
+
+Signal is drawn from our experience as professional programmers at Carbon Five who use RxJS on a number of production projects, and is essentially captures our "best practices" we've developed over time for modelling data with Observables.
+
+### Areas of state in frontend applications
+
+In practical experience, we've seen 
 ### Usage
 
 ```bash
