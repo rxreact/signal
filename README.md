@@ -19,13 +19,13 @@ Signal is drawn from our experience as professional programmers at Carbon Five w
 In your project:
 
 ```
-npm install @rxreact/signal-connect --save
+npm install @rxreact/signal --save
 ```
 
 or
 
 ```
-yarn add @rxreact/signal-connect
+yarn add @rxreact/signal
 ```
 
 RxJS and React are peer dependencies and need to be installed seperately
