@@ -211,7 +211,7 @@ While `@rxreact/signal` can be used with just javascript, if you use Typescript 
 
 ### Caveat Emptor
 
-This libraries are still in very in development and the typings require Typescript 3.1 which isn't even out yet. Feel free to expiriment but beware production usage!
+This libraries are still in very in development and the typings require Typescript 3.1. Feel free to experiment but beware production usage!
 
 Expect though that development will continue and this will be a production-grade library in the future!
 
