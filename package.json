@@ -31,8 +31,7 @@
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
     "commit": "git-cz",
     "semantic-release": "semantic-release",
-    "semantic-release-prepare": "ts-node tools/semantic-release-prepare",
-    "precommit": "lint-staged"
+    "semantic-release-prepare": "ts-node tools/semantic-release-prepare"
   },
   "lint-staged": {
     "{src,test}/**/*.ts": [
@@ -82,7 +81,7 @@
     "coveralls": "^3.0.0",
     "cross-env": "^5.0.1",
     "cz-conventional-changelog": "^2.0.0",
-    "husky": "^0.14.0",
+    "husky": "^1.1.0",
     "jest": "^23.6.0",
     "lint-staged": "^7.2.2",
     "lodash.camelcase": "^4.3.0",
@@ -104,10 +103,16 @@
     "tslint-config-prettier": "^1.1.0",
     "tslint-config-standard": "^8.0.1",
     "typedoc": "hannahhoward/typedoc",
-    "typescript": "^3.1.0-dev.20180922",
+    "typescript": "^3.1.1",
     "validate-commit-msg": "^2.12.2"
   },
   "peerDependencies": {
     "rxjs": "^6.3.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "validate-commit-msg"
+    }
   }
 }
