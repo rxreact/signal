@@ -16,6 +16,12 @@ export type SignalGraphDefinitionTransform<
   signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, P, D>
 ) => SignalGraphDefinition<SignalsType, Dependencies, P | EP[0], D | EP[1]>
 
+/**
+ * Injects a dependency into the Signal Graph that can be used by derived
+ * signals
+ * @param key The key of the dependency
+ * @param dependency The dependency to be injected
+ */
 export const addDependency = <
   SignalsType,
   Dependencies,
@@ -33,6 +39,11 @@ export const addDependency = <
   depedencies: assoc(key, dependency, signalGraphDefinition.depedencies)
 })
 
+/**
+ * Adds a primary signal into the Signal Graph, wich are the source streams
+ * of the Signal Graph.
+ * @param key The key for the primary signal
+ */
 export const addPrimary = <SignalsType, Dependencies, K extends keyof SignalsType>(
   key: K
 ): SignalGraphDefinitionTransform<SignalsType, Dependencies, [K, never]> => <
@@ -45,6 +56,15 @@ export const addPrimary = <SignalsType, Dependencies, K extends keyof SignalsTyp
   primaryKeys: (signalGraphDefinition.primaryKeys as (P | K)[]).concat(key)
 })
 
+/**
+ * Adds a new derived signal into the Signal Graph. It uses other signals passed
+ * by arguments to create a new derived signal.
+ * @param key The key for the derivation
+ * @param derivationFn The function that will create a derived stream from its
+ * arguments
+ * @param args The list of keys of other primary signals or derived streams
+ * required for the derivation function
+ */
 export const addDerived = <
   SignalsType,
   Dependencies,
