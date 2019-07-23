@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/rxreact/signal.svg?branch=master)](https://travis-ci.org/rxreact/signal)
 [![Coverage Status](https://coveralls.io/repos/github/rxreact/signal/badge.svg?branch=master)](https://coveralls.io/github/rxreact/signal?branch=master)
 
-Development Sponsored By:  
+Development Sponsored By:
 [![Carbon Five](./assets/C5_final_logo_horiz.png)](http://www.carbonfive.com)
 
 # Signal
@@ -32,7 +32,7 @@ RxJS and React are peer dependencies and need to be installed seperately
 
 ## What is a Signal Graph?
 
-This tutorial assumes a basic knowledge of RxJS and functional reactive programming. You can start with: 
+This tutorial assumes a basic knowledge of RxJS and functional reactive programming. You can start with:
 
 [The introduction to Reactive Programming you've been missing
 ](https://gist.github.com/staltz/868e7e9bc2a7b8c1f754)
@@ -51,7 +51,7 @@ From there, we can probably come up with a stream of attempted logins by combini
 
 We can use those to kick off API calls to a server, which will eventually result a stream of responses.
 
-From there we can derive more things -- we can seperate successes and failures from the response stream, and we can derive whether a login is progress from the time between a login attempt and a login response. 
+From there we can derive more things -- we can seperate successes and failures from the response stream, and we can derive whether a login is progress from the time between a login attempt and a login response.
 
 We can extract useful data from our success and failure streams -- the error messages returned from the server and maybe an auth token that comes back in a success login response.
 
@@ -88,7 +88,7 @@ const makeLoginAttempts = (
     username$: Observable<string>,
     password$: Observable<string>
   ) => submitButton$.pipe(withLatestFrom(username$, password$))
-  
+
 const makeLoginResponses = (loginAttempts$: Observable<[void, string, string]>, api: API) =>
     loginAttempts$.pipe(flatMap(([_, username, password]) => api.login({ username, password })))
 ```
@@ -226,6 +226,8 @@ As seen above, this type allows you to define the type of signals that will be u
     username$: string
     password$: string
   }
+
+  Dependencies = { api: API }
 ```
 
 #### SignalGraphBuilder
@@ -259,7 +261,7 @@ This class gets initialized with the following arguments
     }
   ```
 
-  The first two arguments are `SignalsType` and `Dependencies`. Here `P` and `D` are all of the keys for the primary or dervived signals. The keys are the names of the signals as defined in `SignalTypes`.
+  The first two arguments are `SignalsType` and `Dependencies`. Here `P` and `D` are all of the keys for the primary or dervived signals. The keys are the keys of the signals as defined in `SignalTypes`.
 
   `SignalGraphDefinition` - returns an object with all of the values needed to build our graph
 
@@ -276,12 +278,37 @@ This class gets initialized with the following arguments
     }
 ```
 
-`
+`DerivableSignals` type is the following:
+```javascript
+export type DerivableSignals<S, D extends keyof S> = {
+  [P in D]: {
+    derivationFn: InternalSignalDerivation<S, P>
+    dependencyList: DependencyList<keyof S>
+  }
+}
+```
+`S` is for the SignalsType
+`D` : keys for the derived signals that exist in the SignalsType
 
+`InternalSignalDerivation` type is the following:
+```javascript
+  export type InternalSignalDerivation<S, P extends keyof S> = (
+  ...args: (S[keyof S] | undefined)[]
+) => S[P]
+```
 
-`initialValues` - are all the values we would like to start with
+`S` is for the SignalsType
+`P` is for all of keys that can exist in `S`
 
-`BuildSignalGraphFn` - Takes the signal graph definition along with our initial values and actually builds our signal graph
+The `InternalSignalDerivation` sets the key value pairs for the `SignalsTypes` so they can be executed in the context of the SignalGraph
+
+`DependencyList` is simply a list of dependencies for a particular signal
+```javascript
+ export type DependencyList<T> = [T?, T?, T?, T?, T?, T?, T?, T?, T?, T?]
+```
+Now that we have gone through our `SignalGraphDefinition` - let's take a look at how we actually build our graph
+
+`BuildSignalGraphFn` - Takes the `SignalGraphDefinition` along with our initial values and actually builds our signal graph
 
 ```typescript
     export type BuildSignalGraphFn = <S, Dep, P extends keyof S, D extends keyof S>(
@@ -314,8 +341,88 @@ Function Signature is shown below
   }
 ```
 
+Now that we have our signal Graph initialized - the `define` function allows us to define how these signals will exist in our signal graph. For example
+are the `primary` or `derived`? -
 
-#### Signal Graph Definition
+```javascript
+public define<T extends [keyof S, keyof S][]>(
+    ...transforms: SignalTransforms<S, Dep, T>
+  ): SignalGraphBuilder<
+    S,
+    Dep,
+    P | ToupleUnion<FirstElements<S, T>>,
+    D | ToupleUnion<SecondElements<S, T>>
+  > {
+    console.log("Transforms", transforms)
+    const newDefinition: SignalGraphDefinition<
+      S,
+      Dep,
+      P | ToupleUnion<FirstElements<S, T>>,
+      D | ToupleUnion<SecondElements<S, T>>
+    > = transforms.reduce((definition, transform) => transform(definition), this
+      .signalGraphDefinition as SignalGraphDefinition<S, Dep, any, any>)
+      console.log("new definition", newDefinition)
+    return new SignalGraphBuilder(newDefinition, this.initialValues, this.buildSignalGraphFn)
+  }
+  ```
+
+  This function essentially takes our list of signals and returns an updated `SignalGraphDefinition` - that is than used to essentially create a new instance of the `SignalGraphBuilder`
+
+  `SignalTransforms` - goes through each of the signal types and associates the `key` for the signal as defined in the `SignalsType` and sets the signal as the `value` for that key.
+
+  ```javascript
+  type SignalTransforms<S, Dep, T extends any[]> = {
+  [K in keyof T]: SignalGraphDefinitionTransform<
+    S,
+    Dep,
+    T[K] extends [keyof S, keyof S] ? T[K] : never
+  >
+  }
+  ```
+
+  It uses the `SignalGraphDefinitionTransform` to actually do the transformation.
+
+  ```javascript
+  export type SignalGraphDefinitionTransform<
+  SignalsType,
+  Dependencies,
+  EP extends [keyof SignalsType, keyof SignalsType]
+> = <P extends keyof SignalsType, D extends keyof SignalsType>(
+  signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, P, D>
+) => SignalGraphDefinition<SignalsType, Dependencies, P | EP[0], D | EP[1]>
+```
+
+This returns a `SignalGraphDefinition` that is used to build our signal graph
+
+All of the signals that are listed in our define function similarly add themselves to the signal graph definition
+
+For example if we take a look at `addPrimary` with the example `addPrimary('password$')`
+```javascript
+export const addPrimary = <SignalsType, Dependencies, K extends keyof SignalsType>(
+  key: K
+): SignalGraphDefinitionTransform<SignalsType, Dependencies, [K, never]> => <
+  P extends keyof SignalsType,
+  D extends keyof SignalsType
+>(
+  signalGraphDefinition: SignalGraphDefinition<SignalsType, Dependencies, P, D>
+) => ({
+  ...signalGraphDefinition,
+  primaryKeys: (signalGraphDefinition.primaryKeys as (P | K)[]).concat(key)
+})
+```
+This function will take the singal type and add it to the signal graph definition
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
