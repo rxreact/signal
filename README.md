@@ -215,4 +215,109 @@ This libraries are still in very in development and the typings require Typescri
 
 Expect though that development will continue and this will be a production-grade library in the future!
 
+
+### More Detailed Documentation
+
+#### Signal Types
+As seen above, this type allows you to define the type of signals that will be used in your signal graph. All of the signals throughout the graph will be defined in this type.
+
+```javascript
+  type SignalsType = {
+    username$: string
+    password$: string
+  }
+```
+
+#### SignalGraphBuilder
+This class gets initialized with the following arguments
+- 1) The signals that have been defined in the `SignalsType`
+- 2) Dependencies for the signals
+
+
+  ```javascript
+    new SignalGraphBuilder(SignalTypes, Dependencies)
+  ```
+
+  It is initialized with the following values
+
+  ```javascript
+    export default class SignalGraphBuilder<
+      S,
+      Dep = {},
+      P extends keyof S = never,
+      D extends keyof S = never
+    > {
+      constructor(
+        private signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D> = {
+          depedencies: {},
+          primaryKeys: [],
+          derivableSignals: {} as DerivableSignals<ObservableMap<S> & Dep, D>
+        },
+        private initialValues: Partial<S> = {},
+        private buildSignalGraphFn: BuildSignalGraphFn = buildSignalGraph
+      ) {}
+    }
+  ```
+
+  The first two arguments are `SignalsType` and `Dependencies`. Here `P` and `D` are all of the keys for the primary or dervived signals. The keys are the names of the signals as defined in `SignalTypes`.
+
+  `SignalGraphDefinition` - returns an object with all of the values needed to build our graph
+
+```javascript
+    export interface SignalGraphDefinition<
+      SignalsType,
+      Dependencies = {},
+      P extends keyof SignalsType = never,
+      D extends keyof SignalsType = never
+    > {
+      depedencies: Partial<Dependencies>
+      primaryKeys: P[]
+      derivableSignals: DerivableSignals<ObservableMap<SignalsType> & Dependencies, D>
+    }
+```
+
+`
+
+
+`initialValues` - are all the values we would like to start with
+
+`BuildSignalGraphFn` - Takes the signal graph definition along with our initial values and actually builds our signal graph
+
+```typescript
+    export type BuildSignalGraphFn = <S, Dep, P extends keyof S, D extends keyof S>(
+      signalGraphDefinition: SignalGraphDefinition<S, Dep, P, D>,
+      initialValues: Partial<S>
+    ) => SignalGraph<Pick<S, P>, Pick<S, D>>
+```
+
+  `SignalGraph<Pick<S, P>, Pick<S, D>>` -  This interface allows for the following
+  - Connecting two separate signal graphs with the `connect` function
+  - Being able to affect input for a signal with the `input` function
+  - Being able to see output for a signal with the `output` function
+
+Function Signature is shown below
+
+```javascript
+  export interface SignalGraph<PrimarySignalsType, DerivedSignalsType> {
+    connect<K1 extends keyof PrimarySignalsType, OP, OD>(
+      key: K1,
+      graph: SignalGraph<OP, OD>,
+      otherKey: MatchingKeys<PrimarySignalsType[K1], OP> | MatchingKeys<PrimarySignalsType[K1], OD>
+    ): Subscription
+    input<K1 extends keyof PrimarySignalsType>(key: K1): SubjectMap<PrimarySignalsType>[K1]
+
+    output<K1 extends keyof PrimarySignalsType>(key: K1): ObservableMap<PrimarySignalsType>[K1]
+    output<K2 extends keyof DerivedSignalsType>(key: K2): ObservableMap<DerivedSignalsType>[K2]
+    output<K1 extends keyof PrimarySignalsType, K2 extends keyof DerivedSignalsType>(
+      key: K1 | K2
+    ): ObservableMap<PrimarySignalsType>[K1] | ObservableMap<DerivedSignalsType>[K2]
+  }
+```
+
+
+#### Signal Graph Definition
+
+
+
+
 ## Enjoy!
