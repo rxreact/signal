@@ -13,9 +13,9 @@ const uniqueNodes = <T extends string | number | symbol>(
 }
 
 const makeEdges = <T extends string | number | symbol>(dependencyMap: DependencyMap<T>) =>
-  Object.entries(dependencyMap).reduce<Array<DepEdge<T>>>(
+  (Object.entries(dependencyMap) as [T, T[]][]).reduce<Array<DepEdge<T>>>(
     (acc, [key, dependencies]) =>
-      acc.concat((dependencies || []).map((val): DepEdge<T> => [val, key as T])),
+      acc.concat((dependencies || []).map((val): DepEdge<T> => [val, key])),
     []
   )
 
