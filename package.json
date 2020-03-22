@@ -85,7 +85,7 @@
     "jest": "^24.7.1",
     "lint-staged": "^8.1.5",
     "lodash.camelcase": "^4.3.0",
-    "prettier": "^1.14.2",
+    "prettier": "^2.0.1",
     "prompt": "^1.0.0",
     "replace-in-file": "^3.0.0-beta.2",
     "rimraf": "^2.6.1",
